@@ -4,8 +4,11 @@ import com.typesafe.config.ConfigException;
 import com.typesafe.config.ConfigMemorySize;
 import com.typesafe.config.ConfigObject;
 import com.typesafe.config.ConfigOrigin;
+import com.typesafe.config.ConfigParseOptions;
 import com.typesafe.config.ConfigValue;
+import org.yaml.snakeyaml.Yaml;
 
+import java.io.InputStream;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -57,6 +60,19 @@ public final class YamlParser {
     public static ConfigValue fromAnyRef(Object object, String originDescription) {
         ConfigOrigin origin = valueOrigin(originDescription);
         return fromAnyRef(object, origin, FromMapMode.KEYS_ARE_KEYS);
+    }
+
+    public static ConfigObject parseResourcesYamlSyntax(String resourceBasename,
+                                                        ConfigParseOptions baseOptions) {
+        final Yaml yaml = new Yaml();
+        final ClassLoader classLoader = baseOptions.getClassLoader();
+        InputStream inputStream = Stream.of(resourceBasename, resourceBasename + ".yaml", resourceBasename + ".yml")
+            .map(classLoader::getResourceAsStream)
+            .filter(Objects::nonNull)
+            .findFirst()
+            .orElseThrow(() -> new ConfigException.Missing(resourceBasename));
+
+        return YamlParser.fromPathMap(yaml.load(inputStream), resourceBasename);
     }
 
     public static ConfigObject fromPathMap(

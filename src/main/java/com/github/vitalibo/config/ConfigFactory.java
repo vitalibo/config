@@ -6,6 +6,7 @@ package com.github.vitalibo.config;
 import com.typesafe.config.*;
 import com.typesafe.config.impl.ConfigImpl;
 import com.typesafe.config.impl.Parseable;
+import com.typesafe.config.impl.YamlParser;
 
 import java.io.File;
 import java.io.Reader;
@@ -1058,6 +1059,11 @@ public final class ConfigFactory {
      */
     public static Config parseResources(String resource, ConfigParseOptions options) {
         ConfigParseOptions withLoader = ensureClassLoader(options, "parseResources");
+        try {
+            return YamlParser.parseResourcesYamlSyntax(resource, withLoader).toConfig();
+        } catch (ConfigException.Missing ignored) {
+        }
+
         return Parseable.newResources(resource, withLoader).parse().toConfig();
     }
 
@@ -1080,6 +1086,11 @@ public final class ConfigFactory {
      * @return the parsed configuration
      */
     public static Config parseResourcesAnySyntax(String resourceBasename, ConfigParseOptions options) {
+        try {
+            return YamlParser.parseResourcesYamlSyntax(resourceBasename, options).toConfig();
+        } catch (ConfigException.Missing ignored) {
+        }
+
         return ConfigImpl.parseResourcesAnySyntax(resourceBasename, options).toConfig();
     }
 
