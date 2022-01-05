@@ -8,7 +8,8 @@ import com.typesafe.config.ConfigParseOptions;
 import com.typesafe.config.ConfigValue;
 import org.yaml.snakeyaml.Yaml;
 
-import java.io.InputStream;
+import java.io.IOException;
+import java.net.URL;
 import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,6 +30,7 @@ public final class YamlParser {
         defaultValueOrigin, Collections.emptyList());
     final private static SimpleConfigObject defaultEmptyObject = SimpleConfigObject
         .empty(defaultValueOrigin);
+    final private static Yaml yaml = new Yaml();
 
     private YamlParser() {
     }
@@ -64,15 +66,19 @@ public final class YamlParser {
 
     public static ConfigObject parseResourcesYamlSyntax(String resourceBasename,
                                                         ConfigParseOptions baseOptions) {
-        final Yaml yaml = new Yaml();
         final ClassLoader classLoader = baseOptions.getClassLoader();
-        InputStream inputStream = Stream.of(resourceBasename, resourceBasename + ".yaml", resourceBasename + ".yml")
-            .map(classLoader::getResourceAsStream)
+        URL url = Stream.of(resourceBasename, resourceBasename + ".yaml", resourceBasename + ".yml")
+            .map(classLoader::getResource)
             .filter(Objects::nonNull)
             .findFirst()
             .orElseThrow(() -> new ConfigException.Missing(resourceBasename));
 
-        return YamlParser.fromPathMap(yaml.load(inputStream), resourceBasename);
+        try {
+            return YamlParser.fromPathMap(yaml.load(url.openStream()), String.format(
+                "%s @ %s:%s: 0", resourceBasename, url.getProtocol(), url.getFile()));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static ConfigObject fromPathMap(
